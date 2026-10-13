@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Policy Exceptions & Administrative Waivers{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Action Bar -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-900">Administrative Policy Waivers & Exceptions</h1>
+            <p class="text-xs text-slate-500 mt-1">
+                Authorized disciplinary review, emergency absenteeism waivers, and competent authority overrides.
+            </p>
+        </div>
+        <button onclick="document.getElementById('newExceptionModal').classList.remove('hidden')" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg text-xs shadow transition flex items-center gap-1.5">
+            <i class="fa-solid fa-scale-balanced"></i> Grant Authorized Exception
+        </button>
+    </div>
+
+    <!-- Active Exceptions Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Approved Exceptions Log ({{ exceptions|length }} Records)
+            </span>
+            <span class="text-[11px] text-slate-500">Every waiver requires administrative justification</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-xs divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-slate-700 font-semibold text-left">
+                    <tr>
+                        <th class="py-3 px-4">Student</th>
+                        <th class="py-3 px-4">Programme</th>
+                        <th class="py-3 px-4">Exception Type</th>
+                        <th class="py-3 px-4">Justification</th>
+                        <th class="py-3 px-4">Approved By</th>
+                        <th class="py-3 px-4">Approved At</th>
+                        <th class="py-3 px-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for e in exceptions %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3 px-4 font-semibold text-slate-900">
+                            <a href="{{ url_for('student.view_student', id=e.student_id) }}" class="text-sky-600 hover:underline">
+                                {{ e.student_name }}
+                            </a>
+                            <div class="text-[10px] text-slate-400 font-mono">{{ e.placement_id }}</div>
+                        </td>
+                        <td class="py-3 px-4 text-slate-600">{{ e.course.split('(')[-1].replace(')', '') }}</td>
+                        <td class="py-3 px-4 font-bold text-amber-800">
+                            {{ e.exception_type }}
+                        </td>
+                        <td class="py-3 px-4 text-slate-700 font-medium">
+                            {{ e.justification }}
+                        </td>
+                        <td class="py-3 px-4 text-slate-600 font-mono text-[11px]">
+                            {{ e.approved_by }}
+                        </td>
+                        <td class="py-3 px-4 text-slate-400 font-mono text-[11px]">
+                            {{ e.approved_at[:19] }}
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                                {{ e.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-slate-400 italic">No policy exceptions recorded.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Grant Exception -->
+<div id="newExceptionModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200">
+        <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-slate-900 text-base">Grant Administrative Waiver</h3>
+            <button onclick="document.getElementById('newExceptionModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('policy.manage_exceptions') }}" method="POST" class="space-y-3 text-xs">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Select Candidate *</label>
+                <select name="student_id" required class="w-full p-2 border border-slate-300 rounded-lg">
+                    {% for s in students %}
+                    <option value="{{ s.id }}">{{ s.student_name }} ({{ s.placement_id }}) - {{ s.course.split('(')[-1].replace(')', '') }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Exception Type *</label>
+                <select name="exception_type" class="w-full p-2 border border-slate-300 rounded-lg">
+                    <option value="Absenteeism Waiver">Absenteeism Waiver (Emergency Exception - resets penalty drives)</option>
+                    <option value="Switching Rule Override">Switching Rule Override (Dean / Placement Committee Approval)</option>
+                    <option value="Eligibility Waiver">Academic Eligibility Waiver</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Administrative Justification *</label>
+                <textarea name="justification" required rows="3" placeholder="Provide detailed official justification and reference committee decision..." class="w-full p-2 border border-slate-300 rounded-lg"></textarea>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button type="button" onclick="document.getElementById('newExceptionModal').classList.add('hidden')" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-semibold">
+                    Approve Waiver
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

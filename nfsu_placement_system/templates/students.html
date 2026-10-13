@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}Student Database{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Action Bar -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-900">Student Placement Database</h1>
+            <p class="text-xs text-slate-500 mt-1">
+                Course-wise student records, academic profiles, contact privacy masking, and placement status tracking.
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{{ url_for('student.export_students') }}" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs border border-slate-300 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-file-csv text-emerald-600"></i> Export CSV
+            </a>
+            {% if current_user.role in ('Placement Administrator', 'Placement Officer') %}
+            <button onclick="document.getElementById('newStudentModal').classList.remove('hidden')" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg text-xs shadow transition flex items-center gap-1.5">
+                <i class="fa-solid fa-plus"></i> Add New Student
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Course Programmes Navigation Tabs -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-2 overflow-x-auto">
+        <div class="flex space-x-1 min-w-max text-xs font-semibold">
+            <a href="{{ url_for('student.list_students', course='all', status=selected_status, reg=selected_reg, q=search_q) }}"
+               class="px-3 py-2 rounded-lg transition {{ 'bg-slate-900 text-white' if selected_course == 'all' else 'text-slate-600 hover:bg-slate-100' }}">
+                All Programmes
+            </a>
+            {% for c in courses %}
+            <a href="{{ url_for('student.list_students', course=c, status=selected_status, reg=selected_reg, q=search_q) }}"
+               class="px-3 py-2 rounded-lg transition {{ 'bg-slate-900 text-white' if selected_course == c else 'text-slate-600 hover:bg-slate-100' }}">
+                {{ c.split('(')[-1].replace(')', '') }}
+                <span class="text-[10px] opacity-75 hidden md:inline ml-1">({{ c.split('(')[0].strip() }})</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <form action="{{ url_for('student.list_students') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+            <input type="hidden" name="course" value="{{ selected_course }}">
+
+            <!-- Search input -->
+            <div class="sm:col-span-2">
+                <label class="block text-slate-600 font-medium mb-1">Search Candidates</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input type="text" name="q" value="{{ search_q }}" placeholder="Placement ID, student name, email..."
+                        class="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-sky-500">
+                </div>
+            </div>
+
+            <!-- Placement Status filter -->
+            <div>
+                <label class="block text-slate-600 font-medium mb-1">Placement Status</label>
+                <select name="status" class="w-full py-1.5 px-2 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-sky-500">
+                    <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Statuses</option>
+                    <option value="Unplaced" {% if selected_status == 'Unplaced' %}selected{% endif %}>Unplaced</option>
+                    <option value="Internship Only" {% if selected_status == 'Internship Only' %}selected{% endif %}>Internship Only</option>
+                    <option value="FTE Only" {% if selected_status == 'FTE Only' %}selected{% endif %}>FTE Only</option>
+                    <option value="Internship + PPO/FTE" {% if selected_status == 'Internship + PPO/FTE' %}selected{% endif %}>Internship + PPO/FTE</option>
+                </select>
+            </div>
+
+            <!-- Registration Status filter -->
+            <div class="flex items-end gap-2">
+                <div class="flex-grow">
+                    <label class="block text-slate-600 font-medium mb-1">Registration</label>
+                    <select name="reg" class="w-full py-1.5 px-2 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-sky-500">
+                        <option value="all" {% if selected_reg == 'all' %}selected{% endif %}>All</option>
+                        <option value="Registered" {% if selected_reg == 'Registered' %}selected{% endif %}>Registered</option>
+                        <option value="Deregistered" {% if selected_reg == 'Deregistered' %}selected{% endif %}>Deregistered</option>
+                        <option value="Not Registered" {% if selected_reg == 'Not Registered' %}selected{% endif %}>Not Registered</option>
+                    </select>
+                </div>
+                <button type="submit" class="px-3 py-1.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition">
+                    Filter
+                </button>
+                <a href="{{ url_for('student.list_students', course=selected_course) }}" class="px-2 py-1.5 text-slate-500 hover:text-slate-700">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Students Roster Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Showing {{ students|length }} Student Records
+            </span>
+            <span class="text-[11px] text-slate-500">
+                <i class="fa-solid fa-lock text-emerald-600 mr-1"></i>Contact details masked for unauthorized roles
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-xs divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-slate-700 font-semibold text-left">
+                    <tr>
+                        <th class="py-3 px-4">Placement ID</th>
+                        <th class="py-3 px-4">Student Name</th>
+                        <th class="py-3 px-4">Programme & Batch</th>
+                        <th class="py-3 px-4">CGPA / Backlogs</th>
+                        <th class="py-3 px-4">Registration</th>
+                        <th class="py-3 px-4">Placement Status</th>
+                        <th class="py-3 px-4">Contact (Masked)</th>
+                        <th class="py-3 px-4 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for s in students %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3 px-4 font-mono font-bold text-slate-900">
+                            <a href="{{ url_for('student.view_student', id=s.id) }}" class="text-sky-600 hover:underline">
+                                {{ s.placement_id }}
+                            </a>
+                        </td>
+                        <td class="py-3 px-4 font-semibold text-slate-900">
+                            {{ s.student_name }}
+                            {% if s.absenteeism_penalty_drives_remaining > 0 %}
+                            <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800" title="Excluded from next {{ s.absenteeism_penalty_drives_remaining }} drives for unexcused absenteeism">
+                                <i class="fa-solid fa-ban"></i> Penalized ({{ s.absenteeism_penalty_drives_remaining }})
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-slate-600">
+                            <div class="font-medium text-slate-800">{{ s.course.split('(')[-1].replace(')', '') }}</div>
+                            <div class="text-[11px] text-slate-400">{{ s.batch }}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="font-bold text-slate-800">{{ s.cgpa }}</span>
+                            {% if s.active_backlogs > 0 %}
+                            <span class="text-rose-600 font-semibold ml-1">({{ s.active_backlogs }} backlogs)</span>
+                            {% else %}
+                            <span class="text-emerald-600 text-[11px] ml-1">✓ No backlogs</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4">
+                            {% if s.registration_status == 'Registered' %}
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">Registered</span>
+                            {% elif s.registration_status == 'Deregistered' %}
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800">Deregistered</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-800">Not Registered</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4">
+                            {% if s.placement_status == 'Internship + PPO/FTE' %}
+                            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-purple-800">Internship + PPO/FTE</span>
+                            {% elif s.placement_status == 'FTE Only' %}
+                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-100 text-indigo-800">FTE Only</span>
+                            {% elif s.placement_status == 'Internship Only' %}
+                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-teal-100 text-teal-800">Internship Only</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">Unplaced</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-slate-500 font-mono text-[11px]">
+                            <div>{{ s.display_mobile }}</div>
+                            <div class="text-slate-400">{{ s.display_email }}</div>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <a href="{{ url_for('student.view_student', id=s.id) }}" class="px-2.5 py-1 bg-slate-100 hover:bg-sky-50 text-sky-700 rounded font-semibold transition border border-slate-200">
+                                View Profile
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-slate-400 italic">
+                            No student records match the active criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add New Student -->
+{% if current_user.role in ('Placement Administrator', 'Placement Officer') %}
+<div id="newStudentModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 border border-slate-200 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-slate-900 text-lg">Register New Candidate</h3>
+            <button onclick="document.getElementById('newStudentModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('student.create_student') }}" method="POST" class="space-y-3 text-xs">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Placement ID *</label>
+                    <input type="text" name="placement_id" required placeholder="e.g. NFSU26-CS-099" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Full Student Name *</label>
+                    <input type="text" name="student_name" required placeholder="Full institutional name" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Mobile Number *</label>
+                    <input type="text" name="mobile_number" required placeholder="+91 98XXXXXXXX" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Institutional Email *</label>
+                    <input type="email" name="email_id" required placeholder="name@nfsu.ac.in" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Programme (5 Covered Programmes) *</label>
+                <select name="course" required class="w-full p-2 border border-slate-300 rounded-lg">
+                    {% for c in courses %}
+                    <option value="{{ c }}">{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Batch *</label>
+                    <select name="batch" class="w-full p-2 border border-slate-300 rounded-lg">
+                        <option value="2025–2027">2025–2027</option>
+                        <option value="2022–2027">2022–2027 (Dual)</option>
+                        <option value="2024–2026">2024–2026</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">CGPA (0 - 10) *</label>
+                    <input type="number" step="0.01" min="0" max="10" name="cgpa" required value="8.00" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Active Backlogs *</label>
+                    <input type="number" min="0" name="active_backlogs" required value="0" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Registration Status</label>
+                    <select name="registration_status" class="w-full p-2 border border-slate-300 rounded-lg">
+                        <option value="Registered">Registered</option>
+                        <option value="Deregistered">Deregistered</option>
+                        <option value="Not Registered">Not Registered</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Institutional Eligibility</label>
+                    <select name="eligibility_status" class="w-full p-2 border border-slate-300 rounded-lg">
+                        <option value="Eligible">Eligible</option>
+                        <option value="Pending Verification">Pending Verification</option>
+                        <option value="Ineligible">Ineligible</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button type="button" onclick="document.getElementById('newStudentModal').classList.add('hidden')" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-semibold">
+                    Save Candidate
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

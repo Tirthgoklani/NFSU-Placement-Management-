@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Cryptographic Audit Log Blockchain{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Verification Action Bar -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-fingerprint"></i>
+                </span>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-slate-900">Forensic Tamper-Evident Audit Trail</h1>
+                    <p class="text-xs text-slate-500">Every institutional action is cryptographically chained using SHA-256 signatures.</p>
+                </div>
+            </div>
+        </div>
+
+        <form action="{{ url_for('audit.verify_audit') }}" method="POST">
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs shadow transition flex items-center gap-2">
+                <i class="fa-solid fa-link"></i> Verify Blockchain Integrity
+            </button>
+        </form>
+    </div>
+
+    <!-- Forensic Chain Explanation Pill -->
+    <div class="p-4 bg-slate-900 rounded-xl text-slate-300 text-xs border border-slate-800 space-y-2">
+        <div class="flex items-center justify-between text-sky-400 font-bold uppercase tracking-wider text-[11px]">
+            <span><i class="fa-solid fa-shield-halved mr-1.5"></i> Cryptographic Chaining Architecture</span>
+            <span class="font-mono text-emerald-400">Genesis: 00000000...0000</span>
+        </div>
+        <p class="text-slate-300 leading-relaxed">
+            Each record signature is computed via:
+            <code class="text-sky-300 font-mono">record_hash = SHA256(timestamp | actor | role | action | entity | details | previous_hash)</code>.
+            Any unauthorized out-of-band database modification, row alteration, or record deletion instantly invalidates subsequent hash signatures and is flagged during verification.
+        </p>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <form action="{{ url_for('audit.view_audit_logs') }}" method="GET" class="flex flex-wrap items-center gap-3 text-xs">
+            <div class="flex-grow min-w-[200px]">
+                <label class="block text-slate-600 font-medium mb-1">Filter by Actor Username</label>
+                <input type="text" name="actor" value="{{ actor_filter }}" placeholder="e.g. admin or officer..." class="w-full p-2 border border-slate-300 rounded-lg text-xs">
+            </div>
+
+            <div class="min-w-[180px]">
+                <label class="block text-slate-600 font-medium mb-1">Filter by Action</label>
+                <select name="action" class="w-full p-2 border border-slate-300 rounded-lg text-xs">
+                    <option value="all">All Actions</option>
+                    {% for a in actions %}
+                    <option value="{{ a }}" {% if action_filter == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex items-end gap-2 pt-5">
+                <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-semibold transition">
+                    Filter Logs
+                </button>
+                <a href="{{ url_for('audit.view_audit_logs') }}" class="px-3 py-2 text-slate-500 hover:text-slate-700">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Audit Logs Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Audit Trail (Showing latest {{ logs|length }} entries)
+            </span>
+            <span class="text-[11px] text-slate-500 font-mono">Immutable Log Sequence</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-xs divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-slate-700 font-semibold text-left">
+                    <tr>
+                        <th class="py-3 px-3">Log ID</th>
+                        <th class="py-3 px-3">Timestamp (UTC)</th>
+                        <th class="py-3 px-3">Actor / Role</th>
+                        <th class="py-3 px-3">Action</th>
+                        <th class="py-3 px-3">Entity</th>
+                        <th class="py-3 px-4">Audit Details</th>
+                        <th class="py-3 px-3 font-mono">Previous Hash</th>
+                        <th class="py-3 px-3 font-mono">Record Hash</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for log in logs %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3 px-3 font-mono font-bold text-slate-900">#{{ log.id }}</td>
+                        <td class="py-3 px-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">
+                            {{ log.timestamp[:19] }}
+                        </td>
+                        <td class="py-3 px-3">
+                            <div class="font-bold text-slate-900">{{ log.actor_username }}</div>
+                            <span class="text-[10px] text-slate-400 font-medium">{{ log.actor_role }}</span>
+                        </td>
+                        <td class="py-3 px-3">
+                            <span class="px-2 py-0.5 rounded font-mono font-bold text-[10px]
+                                {% if 'FAILED' in log.action or 'LOCKED' in log.action or 'BLOCKED' in log.action %} bg-rose-100 text-rose-800
+                                {% elif 'SUCCESS' in log.action or 'CREATE' in log.action or 'INIT' in log.action %} bg-emerald-100 text-emerald-800
+                                {% else %} bg-sky-100 text-sky-800 {% endif %}">
+                                {{ log.action }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-slate-600 font-medium">
+                            {{ log.entity_type }}
+                            {% if log.entity_id %}
+                            <div class="text-[10px] font-mono text-slate-400">{{ log.entity_id }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-slate-800 font-medium max-w-xs break-words">
+                            {{ log.details }}
+                        </td>
+                        <td class="py-3 px-3 font-mono text-[10px] text-slate-400" title="{{ log.previous_hash }}">
+                            {{ log.previous_hash[:10] }}...
+                        </td>
+                        <td class="py-3 px-3 font-mono text-[10px] text-sky-700 font-bold" title="{{ log.record_hash }}">
+                            {{ log.record_hash[:10] }}...
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-slate-400 italic">No audit records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

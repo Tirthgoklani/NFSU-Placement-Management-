@@ -1,0 +1,68 @@
+/* NFSU Custom Stylesheet - Forensic & Professional Theme */
+
+:root {
+    --nfsu-primary: #0F172A;
+    --nfsu-secondary: #1E293B;
+    --nfsu-accent: #0284C7;
+    --nfsu-accent-hover: #0369A1;
+    --nfsu-bg: #F8FAFC;
+    --nfsu-card: #FFFFFF;
+    --nfsu-text: #0F172A;
+    --nfsu-muted: #64748B;
+    --nfsu-border: #E2E8F0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--nfsu-bg);
+    color: var(--nfsu-text);
+}
+
+.nfsu-badge-cat-a-plus {
+    background-color: #FEF08A;
+    color: #854D0E;
+    border: 1px solid #FACC15;
+    font-weight: 700;
+}
+
+.nfsu-badge-cat-a {
+    background-color: #E0E7FF;
+    color: #3730A3;
+    border: 1px solid #A5B4FC;
+    font-weight: 600;
+}
+
+.nfsu-badge-cat-b {
+    background-color: #E0F2FE;
+    color: #075985;
+    border: 1px solid #7DD3FC;
+    font-weight: 600;
+}
+
+.nfsu-badge-cat-c {
+    background-color: #F1F5F9;
+    color: #475569;
+    border: 1px solid #CBD5E1;
+    font-weight: 600;
+}
+
+.hash-pill {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 0.75rem;
+    background: #0F172A;
+    color: #38BDF8;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.timeline-event::before {
+    content: '';
+    position: absolute;
+    left: -19px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #0284C7;
+    border: 2px solid white;
+}

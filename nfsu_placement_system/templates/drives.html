@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Recruitment Drives{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Action Bar -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-900">Campus Recruitment Drives</h1>
+            <p class="text-xs text-slate-500 mt-1">
+                Recruitment schedule, company CTC classification, academic eligibility criteria, and attendance tracking.
+            </p>
+        </div>
+        {% if current_user.role in ('Placement Administrator', 'Placement Officer') %}
+        <button onclick="document.getElementById('newDriveModal').classList.remove('hidden')" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg text-xs shadow transition flex items-center gap-1.5">
+            <i class="fa-solid fa-plus"></i> Schedule New Drive
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Category Guide Quick Pill -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+            <div class="font-bold text-yellow-900 flex items-center justify-between">
+                <span>Category A+</span>
+                <span class="font-mono">≥ ₹16 LPA</span>
+            </div>
+            <p class="text-[11px] text-yellow-700 mt-1">No switching policy; students selected in A+ are out of placement process.</p>
+        </div>
+        <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
+            <div class="font-bold text-indigo-900 flex items-center justify-between">
+                <span>Category A</span>
+                <span class="font-mono">₹10–16 LPA</span>
+            </div>
+            <p class="text-[11px] text-indigo-700 mt-1">Switching allowed only to A+ category companies (≥ ₹16 LPA).</p>
+        </div>
+        <div class="bg-sky-50 p-3 rounded-lg border border-sky-200">
+            <div class="font-bold text-sky-900 flex items-center justify-between">
+                <span>Category B</span>
+                <span class="font-mono">₹6–10 LPA</span>
+            </div>
+            <p class="text-[11px] text-sky-700 mt-1">Further placement allowed where new package is ≥ 1.5x existing package.</p>
+        </div>
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <div class="font-bold text-slate-900 flex items-center justify-between">
+                <span>Category C</span>
+                <span class="font-mono">&lt; ₹6 LPA</span>
+            </div>
+            <p class="text-[11px] text-slate-700 mt-1">Eligible for higher-category opportunities (B, A, A+). No lateral switch.</p>
+        </div>
+    </div>
+
+    <!-- Drives Grid/Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Recruitment Schedule ({{ drives|length }} Drives)
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-xs divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-slate-700 font-semibold text-left">
+                    <tr>
+                        <th class="py-3 px-4">Drive Code</th>
+                        <th class="py-3 px-4">Company Name</th>
+                        <th class="py-3 px-4">Category</th>
+                        <th class="py-3 px-4">Offer Type</th>
+                        <th class="py-3 px-4">Compensation / CTC</th>
+                        <th class="py-3 px-4">Eligibility Criteria</th>
+                        <th class="py-3 px-4">Drive Date</th>
+                        <th class="py-3 px-4 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for d in drives %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3 px-4 font-mono font-bold text-slate-900">
+                            <a href="{{ url_for('drive.view_drive', id=d.id) }}" class="text-sky-600 hover:underline">
+                                {{ d.drive_code }}
+                            </a>
+                        </td>
+                        <td class="py-3 px-4 font-bold text-slate-900 text-sm">
+                            {{ d.company_name }}
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="px-2.5 py-0.5 rounded font-bold text-xs
+                                {% if d.category == 'A+' %} nfsu-badge-cat-a-plus
+                                {% elif d.category == 'A' %} nfsu-badge-cat-a
+                                {% elif d.category == 'B' %} nfsu-badge-cat-b
+                                {% else %} nfsu-badge-cat-c {% endif %}">
+                                Category {{ d.category }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-semibold">
+                                {% if d.offer_type == 'I' %}Internship Only (I)
+                                {% elif d.offer_type == 'F' %}FTE Only (F)
+                                {% else %}Internship + PPO/FTE (I+F){% endif %}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 font-semibold">
+                            {% if d.fte_package_ctc > 0 %}
+                            <div class="text-slate-900 font-bold">₹{{ d.fte_package_ctc }} LPA</div>
+                            {% endif %}
+                            {% if d.stipend_amount > 0 %}
+                            <div class="text-teal-700 text-[11px]">Stipend: ₹{{ d.stipend_amount|currency_inr }}/mo</div>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-slate-600">
+                            <div>Min CGPA: <strong>{{ d.min_cgpa }}</strong></div>
+                            <div>Max Backlogs: <strong>{{ d.max_backlogs }}</strong></div>
+                        </td>
+                        <td class="py-3 px-4 text-slate-500 font-mono">
+                            {{ d.drive_date }}
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <a href="{{ url_for('drive.view_drive', id=d.id) }}" class="px-3 py-1 bg-slate-900 text-white rounded font-semibold text-xs hover:bg-slate-800 transition">
+                                Manage Drive
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-slate-400 italic">No drives scheduled yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add New Drive -->
+{% if current_user.role in ('Placement Administrator', 'Placement Officer') %}
+<div id="newDriveModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 border border-slate-200 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-slate-900 text-lg">Schedule Recruitment Drive</h3>
+            <button onclick="document.getElementById('newDriveModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('drive.create_drive') }}" method="POST" class="space-y-3 text-xs">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Drive Code *</label>
+                    <input type="text" name="drive_code" required placeholder="e.g. DRV-2026-009" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Company Name *</label>
+                    <input type="text" name="company_name" required placeholder="Organization Name" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Offer Classification *</label>
+                    <select name="offer_type" class="w-full p-2 border border-slate-300 rounded-lg">
+                        <option value="F">FTE Only (F)</option>
+                        <option value="I">Internship Only (I)</option>
+                        <option value="I+F">Internship + PPO/FTE (I+F)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">FTE Annual CTC (in LPA)</label>
+                    <input type="number" step="0.1" name="fte_package_ctc" value="12.0" placeholder="e.g. 18.5" class="w-full p-2 border border-slate-300 rounded-lg">
+                    <span class="text-[10px] text-slate-400">Category auto-assigned: A+ (≥16), A (10-16), B (6-10), C (&lt;6)</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Internship Stipend (INR/mo)</label>
+                    <input type="number" name="stipend_amount" value="0" placeholder="Monthly amount" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Stipend Period</label>
+                    <input type="text" name="stipend_period" value="Per Month, 6 Months" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Min CGPA</label>
+                    <input type="number" step="0.1" min="0" max="10" name="min_cgpa" value="7.0" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Max Backlogs</label>
+                    <input type="number" min="0" name="max_backlogs" value="0" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Drive Date *</label>
+                    <input type="date" name="drive_date" required class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Eligible Programmes</label>
+                <div class="space-y-1 bg-slate-50 p-2.5 rounded-lg border border-slate-200 max-h-28 overflow-y-auto">
+                    {% for c in courses %}
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" name="eligible_courses" value="{{ c }}" checked class="rounded text-sky-600">
+                        <span class="text-[11px] text-slate-700">{{ c }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button type="button" onclick="document.getElementById('newDriveModal').classList.add('hidden')" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-semibold">
+                    Schedule Drive
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

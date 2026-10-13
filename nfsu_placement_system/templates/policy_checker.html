@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Policy Rule Engine Simulator{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header Banner -->
+    <div class="bg-gradient-to-r from-slate-900 to-sky-950 p-6 rounded-2xl text-white shadow-md border border-slate-700">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                    NFSU Student Placement Guidelines 2026–27
+                </span>
+                <h1 class="text-2xl font-black mt-1">Automated Policy Rule Engine Simulator</h1>
+                <p class="text-xs text-slate-300 mt-1">
+                    Simulates institutional eligibility checks, switching rules, offer-type constraints, and attendance penalties with full audit explanations.
+                </p>
+            </div>
+            <a href="{{ url_for('policy.manage_exceptions') }}" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs shadow transition flex items-center gap-1.5">
+                <i class="fa-solid fa-scale-balanced"></i> Manage Administrative Waivers
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Scenario Presets for Instant Testing -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles text-sky-500"></i> One-Click Policy Scenario Presets
+        </div>
+        <div class="flex flex-wrap gap-2 text-xs">
+            <!-- Preset 1: A+ Blocked -->
+            <a href="{{ url_for('policy.simulator', student_id=1, sim_company='Google India', sim_ctc=28.0, sim_offer_type='F') }}"
+               class="px-2.5 py-1.5 rounded-lg bg-yellow-50 text-yellow-900 border border-yellow-300 hover:bg-yellow-100 font-semibold transition">
+                <i class="fa-solid fa-ban text-yellow-700 mr-1"></i> A+ Locked Candidate (Rohit)
+            </a>
+            <!-- Preset 2: Cat A Lateral Blocked -->
+            <a href="{{ url_for('policy.simulator', student_id=2, sim_company='PwC Cyber', sim_ctc=14.0, sim_offer_type='F') }}"
+               class="px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-900 border border-indigo-300 hover:bg-indigo-100 font-semibold transition">
+                <i class="fa-solid fa-ban text-indigo-700 mr-1"></i> Cat A to Cat A Switch (Blocked)
+            </a>
+            <!-- Preset 3: Cat A to A+ Allowed -->
+            <a href="{{ url_for('policy.simulator', student_id=2, sim_company='Microsoft A+', sim_ctc=22.0, sim_offer_type='F') }}"
+               class="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-300 hover:bg-emerald-100 font-semibold transition">
+                <i class="fa-solid fa-check text-emerald-700 mr-1"></i> Cat A to Cat A+ (Allowed)
+            </a>
+            <!-- Preset 4: Cat B 1.5x Rule Failure -->
+            <a href="{{ url_for('policy.simulator', student_id=8, sim_company='Mid-Tier Tech', sim_ctc=10.0, sim_offer_type='F') }}"
+               class="px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-900 border border-rose-300 hover:bg-rose-100 font-semibold transition">
+                <i class="fa-solid fa-ban text-rose-700 mr-1"></i> Cat B &lt; 1.5x CTC (Blocked)
+            </a>
+            <!-- Preset 5: Cat B 1.5x Rule Success -->
+            <a href="{{ url_for('policy.simulator', student_id=8, sim_company='High-Growth Tech', sim_ctc=13.0, sim_offer_type='F') }}"
+               class="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-300 hover:bg-emerald-100 font-semibold transition">
+                <i class="fa-solid fa-check text-emerald-700 mr-1"></i> Cat B ≥ 1.5x CTC (Allowed)
+            </a>
+            <!-- Preset 6: Internship to Internship Blocked -->
+            <a href="{{ url_for('policy.simulator', student_id=24, sim_company='DRDO Cyber', sim_ctc=0.0, sim_offer_type='I') }}"
+               class="px-2.5 py-1.5 rounded-lg bg-teal-50 text-teal-900 border border-teal-300 hover:bg-teal-100 font-semibold transition">
+                <i class="fa-solid fa-ban text-teal-700 mr-1"></i> Intern to Intern Role (Blocked)
+            </a>
+            <!-- Preset 7: Absenteeism Penalty Blocked -->
+            <a href="{{ url_for('policy.simulator', student_id=19, sim_company='Any Company', sim_ctc=10.0, sim_offer_type='F') }}"
+               class="px-2.5 py-1.5 rounded-lg bg-red-50 text-red-900 border border-red-300 hover:bg-red-100 font-semibold transition">
+                <i class="fa-solid fa-user-slash text-red-700 mr-1"></i> Absenteeism Penalized (Arjun)
+            </a>
+        </div>
+    </div>
+
+    <!-- Simulation Parameters Form -->
+    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <form action="{{ url_for('policy.simulator') }}" method="GET" class="space-y-4 text-xs">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Select Candidate -->
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">1. Select Candidate Under Evaluation *</label>
+                    <select name="student_id" required onchange="this.form.submit()" class="w-full p-2.5 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-sky-500">
+                        <option value="">-- Choose Candidate --</option>
+                        {% for s in students %}
+                        <option value="{{ s.id }}" {% if selected_student_id == s.id %}selected{% endif %}>
+                            {{ s.student_name }} ({{ s.placement_id }}) - {{ s.placement_status }} [CGPA: {{ s.cgpa }}]
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Select Target Opportunity Source -->
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">2. Target Opportunity Source *</label>
+                    <select name="drive_id" onchange="toggleCustomFields(this.value); this.form.submit();" class="w-full p-2.5 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-sky-500">
+                        <option value="custom" {% if selected_drive_id == 'custom' or not selected_drive_id %}selected{% endif %}>-- Custom Hypothetical Drive Attributes --</option>
+                        {% for d in drives %}
+                        <option value="{{ d.id }}" {% if selected_drive_id|string == d.id|string %}selected{% endif %}>
+                            {{ d.company_name }} ({{ d.drive_code }}) - Cat {{ d.category }}, {{ d.offer_type }}, ₹{{ d.fte_package_ctc }} LPA
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Custom Attributes Row (visible if 'custom' selected) -->
+            <div id="customFields" class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <div class="font-bold text-slate-700">Hypothetical Drive Parameters</div>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Target Company</label>
+                        <input type="text" name="sim_company" value="{{ request.values.get('sim_company', 'Hypothetical Recruiter') }}" class="w-full p-2 border border-slate-300 rounded-lg text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Offer Classification</label>
+                        <select name="sim_offer_type" class="w-full p-2 border border-slate-300 rounded-lg text-xs">
+                            <option value="F" {% if request.values.get('sim_offer_type') == 'F' %}selected{% endif %}>FTE Only (F)</option>
+                            <option value="I" {% if request.values.get('sim_offer_type') == 'I' %}selected{% endif %}>Internship Only (I)</option>
+                            <option value="I+F" {% if request.values.get('sim_offer_type') == 'I+F' %}selected{% endif %}>Internship + PPO/FTE (I+F)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Target Annual CTC (LPA)</label>
+                        <input type="number" step="0.1" name="sim_ctc" value="{{ request.values.get('sim_ctc', 12.0) }}" class="w-full p-2 border border-slate-300 rounded-lg text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-600 mb-1">Min CGPA Required</label>
+                        <input type="number" step="0.1" name="sim_min_cgpa" value="{{ request.values.get('sim_min_cgpa', 7.0) }}" class="w-full p-2 border border-slate-300 rounded-lg text-xs">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="submit" class="px-5 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-bold transition flex items-center gap-2 shadow">
+                    <i class="fa-solid fa-play text-sky-400"></i> Evaluate Policy Rules
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Evaluation Verdict Section -->
+    {% if evaluation and target_student and target_drive %}
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 space-y-6">
+
+        <!-- Top Verdict Banner -->
+        <div class="p-5 rounded-xl border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4
+            {% if evaluation.decision == 'Allowed' %} bg-emerald-50 border-emerald-300 text-emerald-900
+            {% elif evaluation.decision == 'Blocked' %} bg-rose-50 border-rose-300 text-rose-900
+            {% else %} bg-amber-50 border-amber-300 text-amber-900 {% endif %}">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl
+                    {% if evaluation.decision == 'Allowed' %} bg-emerald-600 text-white shadow-lg shadow-emerald-200
+                    {% elif evaluation.decision == 'Blocked' %} bg-rose-600 text-white shadow-lg shadow-rose-200
+                    {% else %} bg-amber-600 text-white shadow-lg shadow-amber-200 {% endif %}">
+                    {% if evaluation.decision == 'Allowed' %}<i class="fa-solid fa-check"></i>
+                    {% elif evaluation.decision == 'Blocked' %}<i class="fa-solid fa-ban"></i>
+                    {% else %}<i class="fa-solid fa-triangle-exclamation"></i>{% endif %}
+                </div>
+                <div>
+                    <div class="text-xs uppercase font-extrabold tracking-wider opacity-75">Automated Policy Decision</div>
+                    <div class="text-2xl font-black">{{ evaluation.decision|upper }}</div>
+                    <div class="text-xs mt-0.5 font-medium">{{ evaluation.summary }}</div>
+                </div>
+            </div>
+
+            <div class="text-right text-xs">
+                <div>Candidate: <strong>{{ target_student.student_name }}</strong> ({{ target_student.placement_id }})</div>
+                <div>Target: <strong>{{ target_drive.company_name }}</strong> (Category {{ target_drive.category }}, ₹{{ target_drive.fte_package_ctc }} LPA)</div>
+            </div>
+        </div>
+
+        <!-- Transparent Step-by-Step Policy Verification Trail -->
+        <div>
+            <h3 class="font-bold text-slate-900 text-sm mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-sky-600"></i> Step-by-Step Institutional Verification Trace
+            </h3>
+
+            <div class="space-y-3">
+                {% for step in evaluation.steps %}
+                <div class="p-3.5 rounded-xl border text-xs flex items-start gap-3
+                    {% if step.passed %} bg-emerald-50/50 border-emerald-200
+                    {% else %} bg-rose-50/50 border-rose-200 {% endif %}">
+                    <div class="mt-0.5 text-base
+                        {% if step.passed %} text-emerald-600
+                        {% else %} text-rose-600 {% endif %}">
+                        {% if step.passed %}<i class="fa-solid fa-circle-check"></i>
+                        {% else %}<i class="fa-solid fa-circle-xmark"></i>{% endif %}
+                    </div>
+                    <div class="flex-grow">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-900">{{ step.step }}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase
+                                {% if step.passed %} bg-emerald-100 text-emerald-800
+                                {% else %} bg-rose-100 text-rose-800 {% endif %}">
+                                {{ 'Passed' if step.passed else 'Failed / Blocked' }}
+                            </span>
+                        </div>
+                        <div class="text-slate-600 mt-1"><strong>Rule:</strong> {{ step.rule }}</div>
+                        <div class="text-slate-800 font-medium mt-0.5"><strong>Analysis:</strong> {{ step.detail }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+function toggleCustomFields(val) {
+    const el = document.getElementById('customFields');
+    if (val === 'custom') {
+        el.classList.remove('hidden');
+    } else {
+        el.classList.add('hidden');
+    }
+}
+</script>
+
+{% endblock %}

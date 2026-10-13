@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard{% endblock %} - NFSU Placement Portal 2026-27</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        nfsuNavy: '#0F172A',
+                        nfsuBlue: '#0284C7',
+                        nfsuSlate: '#334155',
+                        nfsuLight: '#F8FAFC'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen">
+
+    <!-- Top Forensic Quick-Switch Role Evaluation Bar -->
+    <div class="bg-slate-900 text-slate-200 text-xs px-4 py-2 border-b border-slate-700 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center space-x-2">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-900 text-cyan-200">
+                <i class="fa-solid fa-shield-halved mr-1"></i> RBAC EVALUATOR
+            </span>
+            <span class="text-slate-400">Current Role:</span>
+            <span class="font-bold text-white px-2 py-0.5 rounded bg-slate-800 border border-slate-600">
+                {{ session.get('role', 'Unauthenticated') }}
+            </span>
+            {% if session.get('username') %}
+            <span class="text-slate-400">({{ session.get('username') }})</span>
+            {% endif %}
+            {% if session.get('assigned_course') %}
+            <span class="text-amber-400 font-semibold">[Scope: {{ session.get('assigned_course') }}]</span>
+            {% endif %}
+            {% if session.get('recruiter_company') %}
+            <span class="text-emerald-400 font-semibold">[Company: {{ session.get('recruiter_company') }}]</span>
+            {% endif %}
+        </div>
+
+        <div class="flex items-center flex-wrap gap-1">
+            <span class="text-slate-400 mr-1">Quick Switch Role:</span>
+            <form action="{{ url_for('auth.quick_switch', role_name='admin') }}" method="POST" class="inline">
+                <button type="submit" class="px-2 py-1 rounded bg-red-950 text-red-200 hover:bg-red-900 border border-red-700" title="Full Placement Administrator">
+                    <i class="fa-solid fa-crown mr-1"></i>Admin
+                </button>
+            </form>
+            <form action="{{ url_for('auth.quick_switch', role_name='officer') }}" method="POST" class="inline">
+                <button type="submit" class="px-2 py-1 rounded bg-blue-950 text-blue-200 hover:bg-blue-900 border border-blue-700" title="Placement Officer">
+                    <i class="fa-solid fa-user-tie mr-1"></i>Officer
+                </button>
+            </form>
+            <form action="{{ url_for('auth.quick_switch', role_name='coord_dfis') }}" method="POST" class="inline">
+                <button type="submit" class="px-2 py-1 rounded bg-amber-950 text-amber-200 hover:bg-amber-900 border border-amber-700" title="Course Coordinator - M.Sc. DFIS">
+                    <i class="fa-solid fa-user-graduate mr-1"></i>Coord DFIS
+                </button>
+            </form>
+            <form action="{{ url_for('auth.quick_switch', role_name='recruiter') }}" method="POST" class="inline">
+                <button type="submit" class="px-2 py-1 rounded bg-emerald-950 text-emerald-200 hover:bg-emerald-900 border border-emerald-700" title="Recruiter - CrowdStrike">
+                    <i class="fa-solid fa-briefcase mr-1"></i>Recruiter
+                </button>
+            </form>
+            <form action="{{ url_for('auth.quick_switch', role_name='student_rohit') }}" method="POST" class="inline">
+                <button type="submit" class="px-2 py-1 rounded bg-purple-950 text-purple-200 hover:bg-purple-900 border border-purple-700" title="Rohit (Placed in A+ Microsoft 26.5LPA)">
+                    <i class="fa-solid fa-user mr-1"></i>Student (A+)
+                </button>
+            </form>
+            <form action="{{ url_for('auth.quick_switch', role_name='student_ananya') }}" method="POST" class="inline">
+                <button type="submit" class="px-2 py-1 rounded bg-teal-950 text-teal-200 hover:bg-teal-900 border border-teal-700" title="Ananya (Internship Only at CERT-In)">
+                    <i class="fa-solid fa-user mr-1"></i>Student (Intern)
+                </button>
+            </form>
+            <form action="{{ url_for('auth.quick_switch', role_name='student_vikram') }}" method="POST" class="inline">
+                <button type="submit" class="px-2 py-1 rounded bg-indigo-950 text-indigo-200 hover:bg-indigo-900 border border-indigo-700" title="Vikram (Category B Quick Heal 8.5LPA - 1.5x rule)">
+                    <i class="fa-solid fa-user mr-1"></i>Student (Cat B)
+                </button>
+            </form>
+            <form action="{{ url_for('auth.quick_switch', role_name='student_sneha') }}" method="POST" class="inline">
+                <button type="submit" class="px-2 py-1 rounded bg-gray-800 text-gray-200 hover:bg-gray-700 border border-gray-600" title="Sneha (Unplaced)">
+                    <i class="fa-solid fa-user mr-1"></i>Student (Unplaced)
+                </button>
+            </form>
+            <form action="{{ url_for('auth.quick_switch', role_name='student_arjun') }}" method="POST" class="inline">
+                <button type="submit" class="px-2 py-1 rounded bg-rose-950 text-rose-200 hover:bg-rose-900 border border-rose-700" title="Arjun (Absenteeism Penalized)">
+                    <i class="fa-solid fa-user-slash mr-1"></i>Student (Penalized)
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Header -->
+    <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- University Logo and Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center text-white shadow-md">
+                        <i class="fa-solid fa-building-columns text-lg"></i>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('report.dashboard') }}" class="font-extrabold text-slate-900 text-lg sm:text-xl tracking-tight flex items-center gap-2">
+                            <span>NFSU Placement Portal</span>
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-sky-100 text-sky-800 border border-sky-300">2026–27</span>
+                        </a>
+                        <p class="text-xs text-slate-500 hidden sm:block">National Forensic Sciences University • Directorate of Placement & Corporate Relations</p>
+                    </div>
+                </div>
+
+                <!-- User actions -->
+                <div class="flex items-center space-x-3">
+                    {% if session.get('user_id') %}
+                    <a href="{{ url_for('auth.profile') }}" class="text-sm text-slate-700 hover:text-sky-600 flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-slate-100 transition">
+                        <i class="fa-regular fa-circle-user text-base"></i>
+                        <span class="font-medium hidden md:inline">{{ session.get('username') }}</span>
+                    </a>
+                    <a href="{{ url_for('auth.logout') }}" class="text-sm text-red-600 hover:text-red-700 flex items-center gap-1 px-3 py-1.5 rounded-md hover:bg-red-50 transition border border-red-200">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        <span class="hidden md:inline">Sign Out</span>
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="text-sm bg-sky-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-sky-700 transition">
+                        Sign In
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Primary Navigation Bar -->
+            {% if session.get('user_id') %}
+            <nav class="flex space-x-1 sm:space-x-4 border-t border-slate-100 py-2 overflow-x-auto text-sm font-medium">
+                <a href="{{ url_for('report.dashboard') }}" class="px-3 py-1.5 rounded-md text-slate-700 hover:bg-slate-100 hover:text-sky-600 flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-chart-pie"></i> Executive Dashboard
+                </a>
+                
+                {% if session.get('role') != 'Recruiter' and session.get('role') != 'Student' %}
+                <a href="{{ url_for('student.list_students') }}" class="px-3 py-1.5 rounded-md text-slate-700 hover:bg-slate-100 hover:text-sky-600 flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-users"></i> Students Database
+                </a>
+                {% endif %}
+
+                {% if session.get('role') == 'Student' and session.get('student_id') %}
+                <a href="{{ url_for('student.view_student', id=session.get('student_id')) }}" class="px-3 py-1.5 rounded-md text-slate-700 hover:bg-slate-100 hover:text-sky-600 flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-id-card"></i> My Placement Profile
+                </a>
+                {% endif %}
+
+                <a href="{{ url_for('drive.list_drives') }}" class="px-3 py-1.5 rounded-md text-slate-700 hover:bg-slate-100 hover:text-sky-600 flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-building"></i> Recruitment Drives
+                </a>
+
+                <a href="{{ url_for('offer.list_offers') }}" class="px-3 py-1.5 rounded-md text-slate-700 hover:bg-slate-100 hover:text-sky-600 flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-file-signature"></i> Offers & Acceptance
+                </a>
+
+                <a href="{{ url_for('policy.simulator') }}" class="px-3 py-1.5 rounded-md text-sky-700 bg-sky-50 hover:bg-sky-100 flex items-center gap-1.5 whitespace-nowrap font-semibold border border-sky-200">
+                    <i class="fa-solid fa-microchip"></i> Policy Rule Engine Sandbox
+                </a>
+
+                {% if session.get('role') == 'Placement Administrator' %}
+                <a href="{{ url_for('policy.manage_exceptions') }}" class="px-3 py-1.5 rounded-md text-amber-700 hover:bg-amber-50 flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-scale-balanced"></i> Policy Waivers
+                </a>
+                {% endif %}
+
+                <a href="{{ url_for('report.detailed_reports') }}" class="px-3 py-1.5 rounded-md text-slate-700 hover:bg-slate-100 hover:text-sky-600 flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-table-list"></i> Course Reports
+                </a>
+
+                {% if session.get('role') == 'Placement Administrator' %}
+                <a href="{{ url_for('audit.view_audit_logs') }}" class="px-3 py-1.5 rounded-md text-indigo-700 hover:bg-indigo-50 flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-fingerprint"></i> Audit Log Blockchain
+                </a>
+                <a href="{{ url_for('audit.backup_management') }}" class="px-3 py-1.5 rounded-md text-slate-700 hover:bg-slate-100 flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-database"></i> Database Backups
+                </a>
+                {% endif %}
+            </nav>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Flash Alert Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-6 space-y-2">
+                    {% for category, message in messages %}
+                        <div class="p-4 rounded-lg flex items-center justify-between shadow-sm border text-sm
+                            {% if category == 'danger' %} bg-red-50 text-red-800 border-red-200
+                            {% elif category == 'warning' %} bg-amber-50 text-amber-800 border-amber-200
+                            {% elif category == 'success' %} bg-emerald-50 text-emerald-800 border-emerald-200
+                            {% else %} bg-sky-50 text-sky-800 border-sky-200 {% endif %}">
+                            <div class="flex items-center gap-3">
+                                {% if category == 'danger' %}<i class="fa-solid fa-triangle-exclamation text-red-600 text-lg"></i>
+                                {% elif category == 'warning' %}<i class="fa-solid fa-circle-exclamation text-amber-600 text-lg"></i>
+                                {% elif category == 'success' %}<i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
+                                {% else %}<i class="fa-solid fa-circle-info text-sky-600 text-lg"></i>{% endif %}
+                                <span>{{ message }}</span>
+                            </div>
+                            <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Forensic Integrity Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-auto py-6 text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-shield-halved text-sky-600"></i>
+                <span>National Forensic Sciences University • Student Placement Guidelines 2026–27 Compliance Portal</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span><i class="fa-solid fa-lock text-emerald-600 mr-1"></i>Cryptographic Hash Chaining Enabled</span>
+                <span>•</span>
+                <span>Role-Based Access Control Active</span>
+                <span>•</span>
+                <span>Session Expiry: 60m</span>
+            </div>
+        </div>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

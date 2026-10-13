@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Offers & Acceptance Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Action Bar -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-900">Placement Offers & Acceptance Tracking</h1>
+            <p class="text-xs text-slate-500 mt-1">
+                Monitors I, F, and I+F classifications, strict 24-hour acceptance deadlines, PPO conversions, and NOC issuance.
+            </p>
+        </div>
+        {% if current_user.role in ('Placement Administrator', 'Placement Officer', 'Recruiter') %}
+        <button onclick="document.getElementById('newOfferModal').classList.remove('hidden')" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg text-xs shadow transition flex items-center gap-1.5">
+            <i class="fa-solid fa-plus"></i> Record New Offer
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- 24-Hour Policy Notice -->
+    <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-clock text-amber-600 text-base"></i>
+            <span><strong>NFSU 2026-27 Policy Rule:</strong> Offer acceptance deadline is strictly <strong>24 hours</strong> or the company's stated timeline (whichever is earlier). Pending offers beyond deadline lapse automatically.</span>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-amber-200 text-amber-900 font-bold text-[11px]">Enforced</span>
+    </div>
+
+    <!-- Offers Master Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Active Offer Roster ({{ offers|length }} Records)
+            </span>
+            <span class="text-[11px] text-slate-500">History preserved on status transitions</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-xs divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-slate-700 font-semibold text-left">
+                    <tr>
+                        <th class="py-3 px-4">Student</th>
+                        <th class="py-3 px-4">Company & Category</th>
+                        <th class="py-3 px-4">Type</th>
+                        <th class="py-3 px-4">Compensation</th>
+                        <th class="py-3 px-4">24h Deadline</th>
+                        <th class="py-3 px-4">Acceptance</th>
+                        <th class="py-3 px-4">PPO Status</th>
+                        <th class="py-3 px-4">NOC / Joining</th>
+                        <th class="py-3 px-4 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for o in offers %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3 px-4 font-semibold text-slate-900">
+                            <a href="{{ url_for('student.view_student', id=o.student_id) }}" class="text-sky-600 hover:underline">
+                                {{ o.student_name }}
+                            </a>
+                            <div class="text-[11px] text-slate-400 font-mono">{{ o.placement_id }} • {{ o.course.split('(')[-1].replace(')', '') }}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="font-bold text-slate-900">{{ o.company_name }}</div>
+                            <span class="px-2 py-0.5 rounded font-bold text-[10px]
+                                {% if o.category == 'A+' %} nfsu-badge-cat-a-plus
+                                {% elif o.category == 'A' %} nfsu-badge-cat-a
+                                {% elif o.category == 'B' %} nfsu-badge-cat-b
+                                {% else %} nfsu-badge-cat-c {% endif %}">
+                                Category {{ o.category }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-800">
+                                {{ o.offer_type }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4">
+                            {% if o.fte_package_ctc > 0 %}
+                            <div class="font-bold text-slate-900">₹{{ o.fte_package_ctc }} LPA</div>
+                            {% endif %}
+                            {% if o.stipend_amount > 0 %}
+                            <div class="text-teal-700 font-medium text-[11px]">₹{{ o.stipend_amount|currency_inr }}/mo</div>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4">
+                            {% if o.offer_acceptance == 'Pending' %}
+                                {% if o.hours_remaining > 0 %}
+                                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800">
+                                    <i class="fa-solid fa-clock mr-1"></i>{{ o.hours_remaining }}h left
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-800">
+                                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>Expired
+                                </span>
+                                {% endif %}
+                            {% else %}
+                            <span class="text-slate-400 text-[11px]">Resolved</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-0.5 rounded font-bold text-xs
+                                {% if o.offer_acceptance == 'Accepted' %} bg-emerald-100 text-emerald-800
+                                {% elif o.offer_acceptance == 'Declined' %} bg-rose-100 text-rose-800
+                                {% elif o.offer_acceptance == 'Expired' %} bg-slate-200 text-slate-700
+                                {% else %} bg-amber-100 text-amber-800 {% endif %}">
+                                {{ o.offer_acceptance }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-slate-700">
+                            {% if o.is_ppo == 1 %}
+                            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-purple-800">
+                                PPO: {{ o.ppo_status }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-400">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-slate-600">
+                            <div>Joining: <strong>{{ o.joining_status }}</strong></div>
+                            <div class="text-[10px] text-slate-400">NOC: {{ o.noc_status }}</div>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                {% if o.offer_acceptance == 'Pending' %}
+                                <form action="{{ url_for('offer.update_offer_status', id=o.id) }}" method="POST" class="inline">
+                                    <input type="hidden" name="offer_acceptance" value="Accepted">
+                                    <button type="submit" class="px-2 py-1 bg-emerald-600 text-white rounded text-[11px] font-bold hover:bg-emerald-700" title="Accept Offer">
+                                        Accept
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('offer.update_offer_status', id=o.id) }}" method="POST" class="inline">
+                                    <input type="hidden" name="offer_acceptance" value="Declined">
+                                    <button type="submit" class="px-2 py-1 bg-rose-600 text-white rounded text-[11px] font-bold hover:bg-rose-700" title="Decline Offer">
+                                        Decline
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                {% if o.offer_type == 'I' and current_user.role in ('Placement Administrator', 'Placement Officer') %}
+                                <button onclick="openPpoModal({{ o.id }}, '{{ o.company_name }}', {{ o.fte_package_ctc }})" class="px-2 py-1 bg-purple-100 text-purple-800 hover:bg-purple-200 rounded text-[11px] font-bold" title="Convert to Pre-Placement Offer (PPO)">
+                                    PPO
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="py-8 text-center text-slate-400 italic">No offer records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Record New Offer -->
+{% if current_user.role in ('Placement Administrator', 'Placement Officer', 'Recruiter') %}
+<div id="newOfferModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 border border-slate-200 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-slate-900 text-lg">Record Recruitment Offer</h3>
+            <button onclick="document.getElementById('newOfferModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('offer.record_offer') }}" method="POST" class="space-y-3 text-xs">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Select Candidate *</label>
+                <select name="student_id" required class="w-full p-2 border border-slate-300 rounded-lg">
+                    {% for s in students %}
+                    <option value="{{ s.id }}">{{ s.student_name }} ({{ s.placement_id }}) - {{ s.course.split('(')[-1].replace(')', '') }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Company / Organization *</label>
+                    <input type="text" name="company_name" required placeholder="Recruiting organization" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Offer Classification *</label>
+                    <select name="offer_type" class="w-full p-2 border border-slate-300 rounded-lg">
+                        <option value="F">FTE Only (F)</option>
+                        <option value="I">Internship Only (I)</option>
+                        <option value="I+F">Internship + PPO/FTE (I+F)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Annual FTE CTC (in LPA)</label>
+                    <input type="number" step="0.1" name="fte_package_ctc" value="12.0" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Internship Stipend (INR/mo)</label>
+                    <input type="number" name="stipend_amount" value="0" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Offer Date *</label>
+                    <input type="date" name="offer_date" required class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Acceptance Deadline</label>
+                    <input type="number" name="deadline_hours" value="24" class="w-full p-2 border border-slate-300 rounded-lg">
+                    <span class="text-[10px] text-slate-400">Strictly 24h per Section 3.2</span>
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Administrative Remarks / Reference</label>
+                <textarea name="remarks" rows="2" placeholder="Audit reference, HR point of contact..." class="w-full p-2 border border-slate-300 rounded-lg"></textarea>
+            </div>
+
+            <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-[11px] text-slate-600">
+                <i class="fa-solid fa-shield-halved text-sky-600 mr-1"></i>
+                Policy rule engine will automatically evaluate candidate switching eligibility prior to acceptance.
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button type="button" onclick="document.getElementById('newOfferModal').classList.add('hidden')" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-semibold">
+                    Submit Offer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal: Convert to PPO -->
+<div id="ppoModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 border border-slate-200">
+        <h3 class="font-bold text-slate-900 text-base mb-3">Convert Internship to PPO</h3>
+        <form id="ppoForm" method="POST" class="space-y-3 text-xs">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Company</label>
+                <input type="text" id="ppoCompany" disabled class="w-full p-2 bg-slate-100 border border-slate-200 rounded-lg">
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Full-Time Annual CTC (LPA) *</label>
+                <input type="number" step="0.1" name="fte_package_ctc" id="ppoCtc" required class="w-full p-2 border border-slate-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">PPO Status *</label>
+                <select name="ppo_status" class="w-full p-2 border border-slate-300 rounded-lg">
+                    <option value="Offered">Offered</option>
+                    <option value="Accepted">Accepted (Locks out from other drives)</option>
+                    <option value="Declined">Declined</option>
+                </select>
+            </div>
+            <div class="pt-2 flex justify-end gap-2">
+                <button type="button" onclick="document.getElementById('ppoModal').classList.add('hidden')" class="px-3 py-1.5 border border-slate-300 rounded-lg">Cancel</button>
+                <button type="submit" class="px-3 py-1.5 bg-purple-700 text-white rounded-lg font-bold">Update PPO</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openPpoModal(offerId, companyName, currentCtc) {
+    document.getElementById('ppoForm').action = "/offers/" + offerId + "/ppo";
+    document.getElementById('ppoCompany').value = companyName;
+    document.getElementById('ppoCtc').value = currentCtc > 0 ? currentCtc : 15.0;
+    document.getElementById('ppoModal').classList.remove('hidden');
+}
+</script>
+
+{% endblock %}

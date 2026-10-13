@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+
+{% block title %}Executive Placement Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Banner & Institutional Overview -->
+    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 rounded-2xl p-6 text-white shadow-lg border border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                    Placement Session 2026–27
+                </span>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                    <i class="fa-solid fa-check-double mr-1"></i>Policy Engine Active
+                </span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-black tracking-tight">NFSU Placement Operations & Policy Control</h1>
+            <p class="text-sm text-slate-300 mt-1">Monitoring candidate profiles, compensation packages, switching eligibility, and policy compliance.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{{ url_for('policy.simulator') }}" class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-lg text-sm shadow transition flex items-center gap-2">
+                <i class="fa-solid fa-microchip"></i> Policy Rule Simulator
+            </a>
+            <a href="{{ url_for('report.export_report_csv') }}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg text-sm border border-slate-600 transition flex items-center gap-2">
+                <i class="fa-solid fa-file-export"></i> Export Report
+            </a>
+        </div>
+    </div>
+
+    <!-- Key Performance Indicators (KPIs) -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <!-- Registered -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
+                <span>Registered</span>
+                <i class="fa-solid fa-user-check text-sky-500"></i>
+            </div>
+            <div class="mt-2 text-2xl font-black text-slate-900">{{ metrics.total_registered }}</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">of {{ metrics.total_students }} Total Students</div>
+        </div>
+
+        <!-- Eligible -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
+                <span>Eligible</span>
+                <i class="fa-solid fa-circle-check text-emerald-500"></i>
+            </div>
+            <div class="mt-2 text-2xl font-black text-emerald-600">{{ metrics.total_eligible }}</div>
+            <div class="text-[11px] text-amber-600 mt-0.5">{{ metrics.total_ineligible }} Ineligible</div>
+        </div>
+
+        <!-- Unique Placed -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
+                <span>Unique Placed</span>
+                <i class="fa-solid fa-award text-purple-500"></i>
+            </div>
+            <div class="mt-2 text-2xl font-black text-purple-700">{{ metrics.unique_placed_students }}</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Distinct candidates</div>
+        </div>
+
+        <!-- Total Offers -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
+                <span>Total Offers</span>
+                <i class="fa-solid fa-file-contract text-indigo-500"></i>
+            </div>
+            <div class="mt-2 text-2xl font-black text-indigo-600">{{ metrics.total_offers_received }}</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Includes switches/PPOs</div>
+        </div>
+
+        <!-- Unplaced -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
+                <span>Unplaced</span>
+                <i class="fa-solid fa-hourglass-half text-amber-500"></i>
+            </div>
+            <div class="mt-2 text-2xl font-black text-amber-600">{{ metrics.total_unplaced }}</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Actively searching</div>
+        </div>
+
+        <!-- Placement Rate -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase">
+                <span>Placement %</span>
+                <i class="fa-solid fa-chart-line text-emerald-500"></i>
+            </div>
+            <div class="mt-2 text-2xl font-black text-slate-900">
+                {% if metrics.total_registered > 0 %}
+                {{ ((metrics.unique_placed_students / metrics.total_registered) * 100)|round(1) }}%
+                {% else %}0%{% endif %}
+            </div>
+            <div class="text-[11px] text-emerald-600 mt-0.5">of registered cohort</div>
+        </div>
+    </div>
+
+    <!-- Compensation & Offer-Type Breakdown Cards (Distinguishing Stipend from Annual FTE CTC) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Annual FTE Compensation Packages (LPA) -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-indian-rupee-sign"></i>
+                    </span>
+                    <div>
+                        <h2 class="font-bold text-slate-900 text-base">Annual FTE Compensation (CTC)</h2>
+                        <p class="text-xs text-slate-500">Reported in LPA (Full-Time Employment)</p>
+                    </div>
+                </div>
+                <span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    FTE Metric
+                </span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <div class="text-xs text-slate-500 font-medium">Highest Package</div>
+                    <div class="text-xl font-black text-slate-900 mt-1">₹{{ metrics.highest_fte_ctc }} LPA</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5">Category A+</div>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <div class="text-xs text-slate-500 font-medium">Average Package</div>
+                    <div class="text-xl font-black text-sky-600 mt-1">₹{{ metrics.avg_fte_ctc }} LPA</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5">Across all placed FTEs</div>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <div class="text-xs text-slate-500 font-medium">Median Package</div>
+                    <div class="text-xl font-black text-indigo-600 mt-1">₹{{ metrics.median_fte_ctc }} LPA</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5">50th percentile</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Internship Stipends (Separately Reported) & Offer-Type Breakdown -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </span>
+                    <div>
+                        <h2 class="font-bold text-slate-900 text-base">Internship Stipends & Offer Classifications</h2>
+                        <p class="text-xs text-slate-500">Distinguished separately from annual FTE salary</p>
+                    </div>
+                </div>
+                <span class="px-2 py-0.5 rounded text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+                    Stipend Metric
+                </span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 text-center">
+                <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                    <div class="text-xs text-slate-500 font-medium">Internship Only (I)</div>
+                    <div class="text-xl font-black text-teal-600 mt-1">{{ metrics.internship_only_count }}</div>
+                    <div class="text-[11px] text-slate-400">Avg: ₹{{ metrics.avg_stipend|int }}/mo</div>
+                </div>
+                <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                    <div class="text-xs text-slate-500 font-medium">FTE Only (F)</div>
+                    <div class="text-xl font-black text-indigo-600 mt-1">{{ metrics.fte_only_count }}</div>
+                    <div class="text-[11px] text-slate-400">Direct FTE selection</div>
+                </div>
+                <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                    <div class="text-xs text-slate-500 font-medium">Intern + PPO/FTE</div>
+                    <div class="text-xl font-black text-purple-600 mt-1">{{ metrics.internship_ppo_fte_count }}</div>
+                    <div class="text-[11px] text-slate-400">Dual track / PPO converted</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visual Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Course-wise Placement Outcomes Chart -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
+            <h2 class="font-bold text-slate-900 text-base mb-1">Course-Wise Placement Rates (5 NFSU Programmes)</h2>
+            <p class="text-xs text-slate-500 mb-4">Percentage of registered students placed per academic department</p>
+            <div class="h-64">
+                <canvas id="courseChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Offer Classification Donut Chart -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <h2 class="font-bold text-slate-900 text-base mb-1">Offer Type Breakdown</h2>
+            <p class="text-xs text-slate-500 mb-4">Distribution among I, F, and I+F</p>
+            <div class="h-64 flex items-center justify-center">
+                <canvas id="offerTypeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Policy Action Banners & Operations Stream -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Switching Rule Eligibility Notice -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-2 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                    </span>
+                    <div>
+                        <h2 class="font-bold text-slate-900 text-base">Students Eligible for Subsequent Drives (Switching Rules)</h2>
+                        <p class="text-xs text-slate-500">Identified dynamically by Policy Rule Engine under NFSU 2026-27 Guidelines</p>
+                    </div>
+                </div>
+                <span class="px-2 py-0.5 rounded text-xs font-semibold bg-sky-100 text-sky-800">
+                    {{ metrics.switching_eligible|length }} Candidates
+                </span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-xs">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 font-semibold text-left">
+                            <th class="py-2 px-3">Student</th>
+                            <th class="py-2 px-3">Programme</th>
+                            <th class="py-2 px-3">Current Status</th>
+                            <th class="py-2 px-3">Policy Switching Rule Allowance</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for item in metrics.switching_eligible[:6] %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-2.5 px-3 font-medium text-slate-900">
+                                <a href="{{ url_for('student.view_student', id=item.student.id) }}" class="text-sky-600 hover:underline">
+                                    {{ item.student.student_name }}
+                                </a>
+                                <div class="text-[10px] text-slate-400 font-mono">{{ item.student.placement_id }}</div>
+                            </td>
+                            <td class="py-2.5 px-3 text-slate-600">{{ item.student.course.split('(')[-1].replace(')', '') }}</td>
+                            <td class="py-2.5 px-3">
+                                <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-800">
+                                    {{ item.student.placement_status }}
+                                </span>
+                            </td>
+                            <td class="py-2.5 px-3 text-slate-700 font-medium">{{ item.reason }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if metrics.switching_eligible|length > 6 %}
+            <div class="text-right pt-1">
+                <a href="{{ url_for('report.detailed_reports') }}" class="text-xs font-semibold text-sky-600 hover:text-sky-800">
+                    View all {{ metrics.switching_eligible|length }} switching eligible students →
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Compliance & Alerts Sidebar -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+            <h2 class="font-bold text-slate-900 text-base border-b border-slate-100 pb-3 flex items-center justify-between">
+                <span>Compliance & Deadlines</span>
+                <i class="fa-solid fa-clock-rotate-left text-amber-500"></i>
+            </h2>
+
+            <!-- Pending Offers (24h acceptance deadline) -->
+            <div class="space-y-2">
+                <div class="text-xs font-bold text-slate-700 uppercase flex justify-between">
+                    <span>Pending Acceptance (24h)</span>
+                    <span class="text-amber-600 font-bold">{{ metrics.pending_offers|length }}</span>
+                </div>
+                {% if metrics.pending_offers %}
+                    {% for po in metrics.pending_offers %}
+                    <div class="p-2.5 bg-amber-50 rounded-lg border border-amber-200 text-xs">
+                        <div class="font-bold text-amber-900">{{ po.student_name }}</div>
+                        <div class="text-amber-700">{{ po.company_name }} (₹{{ po.fte_package_ctc }} LPA)</div>
+                        <div class="text-[11px] text-amber-600 mt-1 flex items-center justify-between">
+                            <span>Deadline tracking active</span>
+                            <a href="{{ url_for('offer.list_offers') }}" class="text-sky-700 font-semibold underline">Review</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-xs text-slate-400 italic">No pending offer deadlines.</div>
+                {% endif %}
+            </div>
+
+            <!-- Disciplinary Absenteeism Cases -->
+            <div class="space-y-2 pt-2 border-t border-slate-100">
+                <div class="text-xs font-bold text-slate-700 uppercase flex justify-between">
+                    <span>Absenteeism Penalties</span>
+                    <span class="text-rose-600 font-bold">{{ metrics.disciplinary_cases|length }}</span>
+                </div>
+                {% if metrics.disciplinary_cases %}
+                    {% for dc in metrics.disciplinary_cases %}
+                    <div class="p-2.5 bg-rose-50 rounded-lg border border-rose-200 text-xs">
+                        <div class="font-bold text-rose-900">{{ dc.student_name }} ({{ dc.placement_id }})</div>
+                        <div class="text-rose-700 font-medium">
+                            <i class="fa-solid fa-ban mr-1"></i>Excluded for next {{ dc.absenteeism_penalty_drives_remaining }} drive(s)
+                        </div>
+                        <div class="text-[11px] text-rose-600 mt-1">Section 3.2 Unexcused Absence penalty</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-xs text-slate-400 italic">No students currently penalized.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Prepare Chart Data
+    const courseLabels = {{ metrics.course_stats|map(attribute='course')|list|tojson }}.map(c => {
+        const parts = c.split('(');
+        return parts.length > 1 ? parts[1].replace(')', '') : c;
+    });
+    const placementRates = {{ metrics.course_stats|map(attribute='rate')|list|tojson }};
+    const highestCtcs = {{ metrics.course_stats|map(attribute='highest_ctc')|list|tojson }};
+
+    // Course Bar Chart
+    const ctxCourse = document.getElementById('courseChart').getContext('2d');
+    new Chart(ctxCourse, {
+        type: 'bar',
+        data: {
+            labels: courseLabels,
+            datasets: [
+                {
+                    label: 'Placement Rate (%)',
+                    data: placementRates,
+                    backgroundColor: '#0284C7',
+                    borderRadius: 6
+                },
+                {
+                    label: 'Highest CTC (LPA)',
+                    data: highestCtcs,
+                    backgroundColor: '#10B981',
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // Offer Type Donut Chart
+    const ctxOffer = document.getElementById('offerTypeChart').getContext('2d');
+    new Chart(ctxOffer, {
+        type: 'doughnut',
+        data: {
+            labels: ['Internship Only (I)', 'FTE Only (F)', 'Intern + PPO/FTE (I+F)'],
+            datasets: [{
+                data: [
+                    {{ metrics.internship_only_count }},
+                    {{ metrics.fte_only_count }},
+                    {{ metrics.internship_ppo_fte_count }}
+                ],
+                backgroundColor: ['#14B8A6', '#6366F1', '#A855F7']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+</script>
+{% endblock %}

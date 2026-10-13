@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Institutional Placement Reports & Statistics{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Action Bar -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-900">Institutional Placement Reports (2026–27)</h1>
+            <p class="text-xs text-slate-500 mt-1">
+                Course-wise outcomes, distinct FTE CTC vs stipend metrics, unique candidate placed counts, and switching eligibility.
+            </p>
+        </div>
+        <a href="{{ url_for('report.export_report_csv') }}" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg text-xs shadow transition flex items-center gap-1.5">
+            <i class="fa-solid fa-file-arrow-down"></i> Export Official CSV Report
+        </a>
+    </div>
+
+    <!-- University Aggregate Performance Summary -->
+    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4">University-Wide Placement Benchmarks</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 text-center text-xs">
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="text-slate-500 font-medium">Registered</div>
+                <div class="text-xl font-black text-slate-900 mt-1">{{ metrics.total_registered }}</div>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="text-slate-500 font-medium">Unique Placed</div>
+                <div class="text-xl font-black text-purple-700 mt-1">{{ metrics.unique_placed_students }}</div>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="text-slate-500 font-medium">Total Offers</div>
+                <div class="text-xl font-black text-indigo-700 mt-1">{{ metrics.total_offers_received }}</div>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="text-slate-500 font-medium">Highest FTE CTC</div>
+                <div class="text-xl font-black text-slate-900 mt-1">₹{{ metrics.highest_fte_ctc }} LPA</div>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="text-slate-500 font-medium">Average FTE CTC</div>
+                <div class="text-xl font-black text-sky-600 mt-1">₹{{ metrics.avg_fte_ctc }} LPA</div>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="text-slate-500 font-medium">Median FTE CTC</div>
+                <div class="text-xl font-black text-indigo-600 mt-1">₹{{ metrics.median_fte_ctc }} LPA</div>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="text-slate-500 font-medium">Highest Stipend</div>
+                <div class="text-xl font-black text-teal-700 mt-1">₹{{ metrics.highest_stipend|int }}/mo</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course-Wise Placement Breakdown Table (5 Programmes) -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Course-Wise Placement Outcomes (All 5 Programmes)
+            </span>
+            <span class="text-[11px] text-slate-500">Stipends and Annual FTE CTC reported separately</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-xs divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-slate-700 font-semibold text-left">
+                    <tr>
+                        <th class="py-3 px-4">Academic Programme</th>
+                        <th class="py-3 px-4 text-center">Cohort</th>
+                        <th class="py-3 px-4 text-center">Placed</th>
+                        <th class="py-3 px-4 text-center">Unplaced</th>
+                        <th class="py-3 px-4 text-center">Placement %</th>
+                        <th class="py-3 px-4 text-right">Highest CTC</th>
+                        <th class="py-3 px-4 text-right">Average CTC</th>
+                        <th class="py-3 px-4 text-center">Intern (I)</th>
+                        <th class="py-3 px-4 text-center">FTE (F)</th>
+                        <th class="py-3 px-4 text-center">I+F / PPO</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for c in metrics.course_stats %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3 px-4 font-bold text-slate-900">
+                            {{ c.course }}
+                        </td>
+                        <td class="py-3 px-4 text-center font-semibold text-slate-700">{{ c.total }}</td>
+                        <td class="py-3 px-4 text-center font-bold text-emerald-600">{{ c.placed }}</td>
+                        <td class="py-3 px-4 text-center font-bold text-amber-600">{{ c.unplaced }}</td>
+                        <td class="py-3 px-4 text-center">
+                            <span class="px-2 py-0.5 rounded-full font-extrabold text-[11px]
+                                {% if c.rate >= 75 %} bg-emerald-100 text-emerald-800
+                                {% elif c.rate >= 50 %} bg-sky-100 text-sky-800
+                                {% else %} bg-slate-100 text-slate-700 {% endif %}">
+                                {{ c.rate }}%
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-right font-bold text-slate-900">
+                            {% if c.highest_ctc > 0 %}₹{{ c.highest_ctc }} LPA{% else %}-{% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-right font-semibold text-sky-600">
+                            {% if c.avg_ctc > 0 %}₹{{ c.avg_ctc }} LPA{% else %}-{% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-center font-semibold text-teal-700">{{ c.internship_only }}</td>
+                        <td class="py-3 px-4 text-center font-semibold text-indigo-700">{{ c.fte_only }}</td>
+                        <td class="py-3 px-4 text-center font-semibold text-purple-700">{{ c.internship_ppo }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Company-Wise Offers & Categories Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
+            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Recruiting Organization Compensation Breakdown
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-xs divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-slate-700 font-semibold text-left">
+                    <tr>
+                        <th class="py-3 px-4">Organization</th>
+                        <th class="py-3 px-4">Category</th>
+                        <th class="py-3 px-4">Offer Type</th>
+                        <th class="py-3 px-4 text-center">Total Offers</th>
+                        <th class="py-3 px-4 text-right">Max FTE CTC</th>
+                        <th class="py-3 px-4 text-right">Avg FTE CTC</th>
+                        <th class="py-3 px-4 text-right">Internship Stipend</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for comp in metrics.company_rows %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3 px-4 font-bold text-slate-900">{{ comp.company_name }}</td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-0.5 rounded font-bold text-[10px]
+                                {% if comp.category == 'A+' %} nfsu-badge-cat-a-plus
+                                {% elif comp.category == 'A' %} nfsu-badge-cat-a
+                                {% elif comp.category == 'B' %} nfsu-badge-cat-b
+                                {% else %} nfsu-badge-cat-c {% endif %}">
+                                Category {{ comp.category }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 font-semibold text-slate-700">{{ comp.offer_type }}</td>
+                        <td class="py-3 px-4 text-center font-bold text-slate-900">{{ comp.offer_count }}</td>
+                        <td class="py-3 px-4 text-right font-bold text-slate-900">
+                            {% if comp.max_ctc > 0 %}₹{{ comp.max_ctc }} LPA{% else %}-{% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-right font-semibold text-sky-600">
+                            {% if comp.avg_ctc > 0 %}₹{{ comp.avg_ctc|round(2) }} LPA{% else %}-{% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-right font-semibold text-teal-700">
+                            {% if comp.max_stipend > 0 %}₹{{ comp.max_stipend|int }}/mo{% else %}-{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Complete Switching Rule Eligibility Roster -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Students Eligible for Subsequent Drives under Policy Switching Rules ({{ metrics.switching_eligible|length }} Candidates)
+            </span>
+            <span class="text-[11px] text-slate-500">Live rule engine evaluation</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-xs divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-slate-700 font-semibold text-left">
+                    <tr>
+                        <th class="py-3 px-4">Placement ID</th>
+                        <th class="py-3 px-4">Student Name</th>
+                        <th class="py-3 px-4">Programme</th>
+                        <th class="py-3 px-4">Current Placement Status</th>
+                        <th class="py-3 px-4">Permitted Switching Rules</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for item in metrics.switching_eligible %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3 px-4 font-mono font-bold text-slate-900">
+                            <a href="{{ url_for('student.view_student', id=item.student.id) }}" class="text-sky-600 hover:underline">
+                                {{ item.student.placement_id }}
+                            </a>
+                        </td>
+                        <td class="py-3 px-4 font-semibold text-slate-900">{{ item.student.student_name }}</td>
+                        <td class="py-3 px-4 text-slate-600">{{ item.student.course }}</td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-800">
+                                {{ item.student.placement_status }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 font-medium text-slate-800">{{ item.reason }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

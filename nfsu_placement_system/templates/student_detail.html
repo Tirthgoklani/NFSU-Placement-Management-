@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.student_name }} ({{ student.placement_id }}){% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Back button & Breadcrumb -->
+    <div class="flex items-center justify-between">
+        <a href="{{ url_for('student.list_students') }}" class="text-xs font-semibold text-slate-600 hover:text-sky-600 flex items-center gap-1">
+            <i class="fa-solid fa-arrow-left"></i> Back to Student Directory
+        </a>
+        <div class="flex items-center gap-2">
+            {% if current_user.role in ('Placement Administrator', 'Placement Officer', 'Course Coordinator') %}
+            <button onclick="document.getElementById('editStudentModal').classList.remove('hidden')" class="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-pen-to-square"></i> Edit Candidate
+            </button>
+            {% endif %}
+            {% if current_user.role == 'Placement Administrator' and student.is_archived == 0 %}
+            <form action="{{ url_for('student.archive_student', id=student.id) }}" method="POST" onsubmit="return confirm('Archive this student record?');">
+                <button type="submit" class="px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg text-xs font-semibold transition border border-red-300">
+                    <i class="fa-solid fa-box-archive mr-1"></i> Archive
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Candidate Overview Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="flex items-start gap-4">
+                <div class="w-16 h-16 rounded-xl bg-slate-900 text-sky-400 flex items-center justify-center text-2xl font-black shadow-md">
+                    {{ student.student_name[:2].upper() }}
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-2xl font-black text-slate-900">{{ student.student_name }}</h1>
+                        <span class="font-mono text-xs px-2.5 py-0.5 rounded bg-slate-100 text-slate-800 font-bold border border-slate-300">
+                            {{ student.placement_id }}
+                        </span>
+                        {% if student.placement_status == 'Internship + PPO/FTE' %}
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                            <i class="fa-solid fa-trophy mr-1"></i>Internship + PPO/FTE
+                        </span>
+                        {% elif student.placement_status == 'FTE Only' %}
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                            <i class="fa-solid fa-briefcase mr-1"></i>FTE Only
+                        </span>
+                        {% elif student.placement_status == 'Internship Only' %}
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-100 text-teal-800 border border-teal-200">
+                            <i class="fa-solid fa-graduation-cap mr-1"></i>Internship Only
+                        </span>
+                        {% else %}
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            <i class="fa-solid fa-clock mr-1"></i>Unplaced
+                        </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-sm text-slate-600 mt-1 font-medium">{{ student.course }} • Batch {{ student.batch }}</p>
+                </div>
+            </div>
+
+            <!-- Badges -->
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1 rounded-lg text-xs font-semibold {{ 'bg-emerald-100 text-emerald-800' if student.registration_status == 'Registered' else 'bg-slate-100 text-slate-700' }}">
+                    <i class="fa-solid fa-id-badge mr-1"></i>{{ student.registration_status }}
+                </span>
+                <span class="px-3 py-1 rounded-lg text-xs font-semibold {{ 'bg-emerald-100 text-emerald-800' if student.eligibility_status == 'Eligible' else ('bg-amber-100 text-amber-800' if student.eligibility_status == 'Pending Verification' else 'bg-rose-100 text-rose-800') }}">
+                    <i class="fa-solid fa-circle-check mr-1"></i>{{ student.eligibility_status }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Academic & Contact Stats Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-100 text-xs">
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="text-slate-500 font-medium">Cumulative GPA</div>
+                <div class="text-lg font-black text-slate-900 mt-1">{{ student.cgpa }} / 10.0</div>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="text-slate-500 font-medium">Active Backlogs</div>
+                <div class="text-lg font-black {{ 'text-rose-600' if student.active_backlogs > 0 else 'text-emerald-600' }} mt-1">
+                    {{ student.active_backlogs }}
+                </div>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="text-slate-500 font-medium">Contact Number (Masked)</div>
+                <div class="text-sm font-bold text-slate-800 mt-1 font-mono">{{ student.display_mobile }}</div>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="text-slate-500 font-medium">Email Address (Masked)</div>
+                <div class="text-sm font-bold text-slate-800 mt-1 font-mono truncate">{{ student.display_email }}</div>
+            </div>
+        </div>
+
+        {% if student.absenteeism_penalty_drives_remaining > 0 %}
+        <div class="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i>
+                <span><strong>Disciplinary Action Active:</strong> Student is currently excluded from the next <strong>{{ student.absenteeism_penalty_drives_remaining }}</strong> recruitment drive(s) due to unexcused absenteeism.</span>
+            </div>
+            {% if current_user.role == 'Placement Administrator' %}
+            <a href="{{ url_for('policy.manage_exceptions') }}" class="px-2.5 py-1 bg-rose-700 text-white rounded font-semibold text-[11px] hover:bg-rose-800">
+                Grant Waiver
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Preserved Historical Placement Offers & Events Timeline -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Historical Placement Records & Offers Trail</h2>
+                <p class="text-xs text-slate-500">Every offer event and status change is preserved with full audit provenance.</p>
+            </div>
+            <span class="px-2.5 py-1 rounded bg-slate-100 text-slate-700 text-xs font-semibold">
+                {{ offers|length }} Historical Event(s)
+            </span>
+        </div>
+
+        {% if offers %}
+        <div class="relative border-l-2 border-sky-600 ml-4 pl-6 space-y-6">
+            {% for o in offers %}
+            <div class="relative timeline-event">
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-2">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-base font-black text-slate-900">{{ o.company_name }}</span>
+                            <!-- Category Badge -->
+                            <span class="px-2 py-0.5 rounded font-bold
+                                {% if o.category == 'A+' %} nfsu-badge-cat-a-plus
+                                {% elif o.category == 'A' %} nfsu-badge-cat-a
+                                {% elif o.category == 'B' %} nfsu-badge-cat-b
+                                {% else %} nfsu-badge-cat-c {% endif %}">
+                                Category {{ o.category }}
+                            </span>
+                            <!-- Offer Type -->
+                            <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-semibold">
+                                {{ o.offer_type }}
+                            </span>
+                            <!-- Acceptance Status -->
+                            <span class="px-2 py-0.5 rounded font-bold
+                                {% if o.offer_acceptance == 'Accepted' %} bg-emerald-100 text-emerald-800
+                                {% elif o.offer_acceptance == 'Declined' %} bg-rose-100 text-rose-800
+                                {% elif o.offer_acceptance == 'Expired' %} bg-slate-200 text-slate-600
+                                {% else %} bg-amber-100 text-amber-800 {% endif %}">
+                                Offer: {{ o.offer_acceptance }}
+                            </span>
+                        </div>
+                        <div class="text-slate-400 text-[11px] font-mono">
+                            Issued: {{ o.offer_date }}
+                        </div>
+                    </div>
+
+                    <!-- Financial & Package Details -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-medium">
+                        {% if o.fte_package_ctc > 0 %}
+                        <div>
+                            <span class="text-slate-500">Annual FTE CTC:</span>
+                            <span class="font-bold text-slate-900 ml-1">₹{{ o.fte_package_ctc }} LPA</span>
+                        </div>
+                        {% endif %}
+                        {% if o.stipend_amount > 0 %}
+                        <div>
+                            <span class="text-slate-500">Internship Stipend:</span>
+                            <span class="font-bold text-slate-900 ml-1">₹{{ o.stipend_amount|currency_inr }}/mo</span>
+                        </div>
+                        {% endif %}
+                        {% if o.is_ppo == 1 %}
+                        <div>
+                            <span class="text-slate-500">PPO Status:</span>
+                            <span class="font-bold text-purple-700 ml-1">{{ o.ppo_status }}</span>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <span class="text-slate-500">Joining Status:</span>
+                            <span class="font-bold text-slate-800 ml-1">{{ o.joining_status }}</span>
+                        </div>
+                    </div>
+
+                    {% if o.remarks %}
+                    <div class="text-slate-600 bg-white p-2 rounded border border-slate-100 text-[11px]">
+                        <strong>Audit Notes:</strong> {{ o.remarks }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-xs text-slate-400 py-6 text-center italic bg-slate-50 rounded-lg">
+            No offer events recorded for this candidate yet.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Attendance & Recruitment Rounds History -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <h2 class="text-lg font-bold text-slate-900 mb-1">Recruitment Drive Attendance & Round Activity</h2>
+        <p class="text-xs text-slate-500 mb-4">Mandatory attendance at pre-placement talks, presentations, technical tests, and interviews.</p>
+
+        {% if attendance %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-xs">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-600 font-semibold text-left">
+                        <th class="py-2 px-3">Company / Drive</th>
+                        <th class="py-2 px-3">Activity Type</th>
+                        <th class="py-2 px-3">Attendance</th>
+                        <th class="py-2 px-3">Recorded At</th>
+                        <th class="py-2 px-3">Notes</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for att in attendance %}
+                    <tr>
+                        <td class="py-2 px-3 font-semibold text-slate-900">{{ att.company_name }} ({{ att.drive_code }})</td>
+                        <td class="py-2 px-3 text-slate-700">{{ att.activity_type }}</td>
+                        <td class="py-2 px-3">
+                            <span class="px-2 py-0.5 rounded font-bold
+                                {% if att.attendance_status == 'Present' %} bg-emerald-100 text-emerald-800
+                                {% elif att.attendance_status == 'Absent' %} bg-rose-100 text-rose-800
+                                {% else %} bg-amber-100 text-amber-800 {% endif %}">
+                                {{ att.attendance_status }}
+                            </span>
+                        </td>
+                        <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">{{ att.recorded_at[:19] }}</td>
+                        <td class="py-2 px-3 text-slate-600">{{ att.remarks or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-xs text-slate-400 py-4 text-center italic bg-slate-50 rounded-lg">
+            No attendance records on file.
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Modal: Edit Student Records -->
+{% if current_user.role in ('Placement Administrator', 'Placement Officer', 'Course Coordinator') %}
+<div id="editStudentModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 border border-slate-200">
+        <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-slate-900 text-lg">Edit Student Record: {{ student.placement_id }}</h3>
+            <button onclick="document.getElementById('editStudentModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('student.edit_student', id=student.id) }}" method="POST" class="space-y-3 text-xs">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Mobile Number</label>
+                    <input type="text" name="mobile_number" value="{{ student.mobile_number }}" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Email ID</label>
+                    <input type="email" name="email_id" value="{{ student.email_id }}" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">CGPA</label>
+                    <input type="number" step="0.01" min="0" max="10" name="cgpa" value="{{ student.cgpa }}" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Active Backlogs</label>
+                    <input type="number" min="0" name="active_backlogs" value="{{ student.active_backlogs }}" class="w-full p-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Registration Status</label>
+                    <select name="registration_status" class="w-full p-2 border border-slate-300 rounded-lg">
+                        <option value="Registered" {% if student.registration_status == 'Registered' %}selected{% endif %}>Registered</option>
+                        <option value="Deregistered" {% if student.registration_status == 'Deregistered' %}selected{% endif %}>Deregistered</option>
+                        <option value="Not Registered" {% if student.registration_status == 'Not Registered' %}selected{% endif %}>Not Registered</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Institutional Eligibility</label>
+                    <select name="eligibility_status" class="w-full p-2 border border-slate-300 rounded-lg">
+                        <option value="Eligible" {% if student.eligibility_status == 'Eligible' %}selected{% endif %}>Eligible</option>
+                        <option value="Pending Verification" {% if student.eligibility_status == 'Pending Verification' %}selected{% endif %}>Pending Verification</option>
+                        <option value="Ineligible" {% if student.eligibility_status == 'Ineligible' %}selected{% endif %}>Ineligible</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Absenteeism Penalty Drives Remaining</label>
+                <input type="number" min="0" max="10" name="absenteeism_penalty_drives_remaining" value="{{ student.absenteeism_penalty_drives_remaining }}" class="w-full p-2 border border-slate-300 rounded-lg">
+                <span class="text-[10px] text-slate-400">Set to 0 if penalty has been completed or waived.</span>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button type="button" onclick="document.getElementById('editStudentModal').classList.add('hidden')" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-semibold">
+                    Update Record
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
